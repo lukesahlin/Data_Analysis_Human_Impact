@@ -1,14 +1,98 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset='utf-8'>
-    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
-    <title>Page Title</title>
-    <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
-    <script src='main.js'></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>The Hidden Factors: What Really Determines Student Success?</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="main.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
 </head>
 <body>
-    <h1> GITHUB PAGES</h1>
+    <header class="header">
+        <h1>The Hidden Factors: What Really Determines Student Success?</h1>
+        <p class="tagline">Explore how college inputs—admission, cost, demographics—correlate with outcomes like completion, earnings, and debt.</p>
+    </header>
+
+    <section class="filters filters--loading" id="filters" aria-label="Filter data" aria-busy="true">
+        <div class="filters-header">
+            <h2 class="filters-title">Filters</h2>
+            <p class="filter-summary" id="filter-summary" aria-live="polite">
+                <span class="filter-summary-loading" id="filter-summary-loading">Loading data…</span>
+                <span class="filter-summary-updating" id="filter-summary-updating" hidden>Updating charts…</span>
+                <span class="filter-summary-count" id="filter-summary-count" hidden></span>
+                <span class="filter-summary-selection" id="filter-summary-selection" hidden></span>
+            </p>
+        </div>
+        <div class="filter-grid">
+            <fieldset class="filter-group" aria-label="Institution type">
+                <legend class="filter-legend">
+                    <span class="filter-legend-title">Institution type</span>
+                    <span class="filter-hint">Select one or more</span>
+                </legend>
+                <div class="filter-options filter-options--control">
+                    <label class="filter-chip"><input type="checkbox" name="filter-control" value="1" checked><span>Public</span></label>
+                    <label class="filter-chip"><input type="checkbox" name="filter-control" value="2" checked><span>Private nonprofit</span></label>
+                    <label class="filter-chip"><input type="checkbox" name="filter-control" value="3" checked><span>Private for-profit</span></label>
+                </div>
+                <button type="button" class="filter-toggle" data-for="filter-control">Select all / Clear</button>
+            </fieldset>
+            <fieldset class="filter-group" aria-label="Region">
+                <legend class="filter-legend">
+                    <span class="filter-legend-title">Region</span>
+                    <span class="filter-hint">Select one or more</span>
+                </legend>
+                <div class="filter-options filter-options--region">
+                    <label class="filter-chip"><input type="checkbox" name="filter-region" value="0" checked><span>US Service Schools</span></label>
+                    <label class="filter-chip"><input type="checkbox" name="filter-region" value="1" checked><span>New England</span></label>
+                    <label class="filter-chip"><input type="checkbox" name="filter-region" value="2" checked><span>Mid East</span></label>
+                    <label class="filter-chip"><input type="checkbox" name="filter-region" value="3" checked><span>Great Lakes</span></label>
+                    <label class="filter-chip"><input type="checkbox" name="filter-region" value="4" checked><span>Plains</span></label>
+                    <label class="filter-chip"><input type="checkbox" name="filter-region" value="5" checked><span>Southeast</span></label>
+                    <label class="filter-chip"><input type="checkbox" name="filter-region" value="6" checked><span>Southwest</span></label>
+                    <label class="filter-chip"><input type="checkbox" name="filter-region" value="7" checked><span>Rocky Mountains</span></label>
+                    <label class="filter-chip"><input type="checkbox" name="filter-region" value="8" checked><span>Far West</span></label>
+                    <label class="filter-chip"><input type="checkbox" name="filter-region" value="9" checked><span>Outlying Areas</span></label>
+                </div>
+                <button type="button" class="filter-toggle" data-for="filter-region">Select all / Clear</button>
+            </fieldset>
+        </div>
+        <div class="filters-footer">
+            <button type="button" id="reset-filters" class="btn-reset" aria-label="Reset all filters">Reset filters</button>
+        </div>
+    </section>
+
+    <section class="viz-section" id="map-section" aria-labelledby="map-title">
+        <h2 id="map-title">Completion rate by state</h2>
+        <p class="section-desc">Median 4-year completion rate of colleges in each state. Lighter (yellow/green) = higher completion; darker (purple) = lower. See the legend for the scale. Uses the same filtered set of institutions; hover a state for the exact value and number of schools.</p>
+        <div id="us-map" class="viz-container viz-container--map"></div>
+    </section>
+
+    <section class="viz-section" id="parallel-section" aria-labelledby="parallel-title">
+        <h2 id="parallel-title">Parallel Coordinates</h2>
+        <p class="section-desc">Each line is one college; it connects that college’s values across admission rate, SAT, % Pell, cost, completion rate, earnings, and debt. Use it to see how inputs and outcomes vary together and to spot clusters (e.g. high-cost, high-completion schools). Drag along any axis to keep only colleges in that range; your selection is reflected in the other charts. Lines are colored by 4-year completion rate (see legend).</p>
+        <div id="parallel-coords" class="viz-container"></div>
+    </section>
+
+    <section class="viz-section" id="correlation-section" aria-labelledby="correlation-title">
+        <h2 id="correlation-title">Correlation Matrix</h2>
+        <p class="section-desc">This heatmap shows <strong>Pearson correlation</strong> between every pair of variables: for each cell we compute how much those two variables move together across the current set of colleges (from −1 to +1). Completion (graduation rate) is one of the seven variables—so you see its correlation with cost, SAT, debt, etc.—but the correlations are not “based on” or conditioned on graduation; each number is simply the pairwise relationship between two variables. Red = positive (e.g. higher cost with higher completion); blue = negative. Hover a cell for the exact r and variable names.</p>
+        <div id="correlation-matrix" class="viz-container"></div>
+    </section>
+
+    <section class="viz-section" id="scatter-section" aria-labelledby="scatter-title">
+        <h2 id="scatter-title">Scatter Plot Matrix</h2>
+        <p class="section-desc">Each small plot compares two variables (e.g. admission rate vs. completion). Points are colleges, colored by completion rate. Brush (click and drag) in any cell to select colleges; that selection is highlighted in every other cell and in the parallel coordinates, so you can see how the same schools look across all variable pairs. Hover a point to see the college name and values.</p>
+        <div id="scatter-matrix" class="viz-container"></div>
+    </section>
+
+    <footer class="footer">
+        <p>Data: <a href="https://collegescorecard.ed.gov/data/">College Scorecard</a>. Most recent institution-level cohorts.</p>
+    </footer>
+
+    <script src="main.js"></script>
 </body>
 </html>
